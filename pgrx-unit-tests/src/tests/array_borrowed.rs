@@ -331,6 +331,17 @@ mod tests {
     }
 
     #[pg_test]
+    fn borrow_test_arr_data_ptr_toasted() {
+        // 2000 i32s should be the TOAST threshold.
+        Spi::run("CREATE TEMP TABLE test_array (arr integer[])")
+            .expect("failed to create temp table");
+        Spi::run("INSERT INTO test_array SELECT array_agg(i) FROM generate_series(1, 2500) i")
+            .expect("failed to insert into temp table");
+        let len = Spi::get_one::<i32>("SELECT borrow_get_arr_nelems(arr) FROM test_array");
+        assert_eq!(len, Ok(Some(2500)));
+    }
+
+    #[pg_test]
     fn borrow_test_get_arr_data_ptr_nth_elem() {
         let nth =
             Spi::get_one::<i32>("SELECT borrow_get_arr_data_ptr_nth_elem('{1,2,3,4,5}'::int[], 2)");
